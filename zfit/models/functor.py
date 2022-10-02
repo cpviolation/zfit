@@ -29,6 +29,7 @@ from ..util.exception import (
     NormRangeUnderdefinedError,
     SpecificFunctionNotImplemented,
 )
+from ..util.ztyping import ExtendedInputType, NormInputType
 from ..z.random import counts_multinomial
 
 
@@ -64,6 +65,8 @@ class SumPDF(BaseFunctor):
         pdfs: Iterable[ZfitPDF],
         fracs: ztyping.ParamTypeInput | None = None,
         obs: ztyping.ObsTypeInput = None,
+        extended: ExtendedInputType = None,
+        norm: NormInputType = None,
         name: str = "SumPDF",
     ):
         """Create the sum of the `pdfs` with `fracs` as coefficients or the yields, if extended pdfs are given.
@@ -90,7 +93,10 @@ class SumPDF(BaseFunctor):
                 - len(frac) == len(basic) - 1 results in the interpretation of a non-extended pdf.
                   The last coefficient will equal to 1 - sum(frac)
                 - len(frac) == len(pdf): the fracs will be used as is and no normalization attempt is taken.
-            name: |name_arg_descr|
+            name: |@doc:pdf.init.name| Human-readable name
+               or label of
+               the PDF for better identification.
+               Has no programmatical functional purpose as identification. |@docend:pdf.init.name|
 
         Raises
             ModelIncompatibleError: If model is incompatible.
@@ -111,9 +117,11 @@ class SumPDF(BaseFunctor):
         self._fracs = param_fracs
         self._original_fracs = fracs_cleaned
 
-        super().__init__(pdfs=pdfs, obs=obs, params=params, name=name)
-        if all_extended and not fracs_cleaned:
-            self.set_yield(sum_yields)
+        if extended in (None, True) and all_extended and not fracs_cleaned:
+            extended = sum_yields
+        super().__init__(
+            pdfs=pdfs, obs=obs, params=params, name=name, extended=extended, norm=norm
+        )
 
     @property
     def fracs(self):
@@ -231,9 +239,39 @@ class SumPDF(BaseFunctor):
 
 class ProductPDF(BaseFunctor):
     def __init__(
-        self, pdfs: list[ZfitPDF], obs: ztyping.ObsTypeInput = None, name="ProductPDF"
+        self,
+        pdfs: list[ZfitPDF],
+        obs: ztyping.ObsTypeInput = None,
+        extended: ExtendedInputType = None,
+        norm: NormInputType = None,
+        name="ProductPDF",
     ):
-        super().__init__(pdfs=pdfs, obs=obs, name=name)
+        """Product of multiple PDFs in the same or different variables.
+
+        This implementation optimizes the integration: if the PDFs are in exclusive observables, the
+        integration can be factorized and the integrals can be calculated separately. This also takes into account
+        that only some PDFs might have overlapping observables.
+
+        Args:
+            pdfs: List of PDFs to multiply.
+            obs: |@doc:pdf.init.obs| Observables of the
+               model. This will be used as the default space of the PDF and,
+               if not given explicitly, as the normalization range.
+
+               The default space is used for example in the sample method: if no
+               sampling limits are given, the default space is used.
+
+               The observables are not equal to the domain as it does not restrict or
+               truncate the model outside this range. |@docend:pdf.init.obs|
+            extended: |@doc:pdf.init.extended| The overall yield of the PDF.
+               If this is parameter-like, it will be used as the yield,
+               the expected number of events, and the PDF will be extended.
+               An extended PDF has additional functionality, such as the
+               ``ext_*`` methods and the ``counts`` (for binned PDFs). |@docend:pdf.init.extended|
+            norm: |@doc:pdf.init.norm| Normalization of the PDF.
+               By default, this is the same as the default space of the PDF. |@docend:pdf.init.norm|
+        """
+        super().__init__(pdfs=pdfs, obs=obs, name=name, extended=extended, norm=norm)
 
         same_obs_pdfs = []
         disjoint_obs_pdfs = []

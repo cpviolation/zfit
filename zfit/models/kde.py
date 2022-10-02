@@ -22,6 +22,7 @@ from ..util import (
     ztyping,
 )
 from ..util.exception import OverdefinedError, ShapeIncompatibleError
+from ..util.ztyping import ExtendedInputType, NormInputType
 from ..z.math import weighted_quantile
 
 
@@ -586,6 +587,8 @@ class GaussianKDE1DimV1(KDEHelper, WrapDistribution):
         bandwidth: ztyping.ParamTypeInput | str = None,
         weights: None | np.ndarray | tf.Tensor = None,
         truncate: bool = False,
+        extended: ExtendedInputType = None,
+        norm: NormInputType = None,
         name: str = "GaussianKDE1DimV1",
     ):
         r"""EXPERIMENTAL, `FEEDBACK WELCOME.
@@ -682,7 +685,14 @@ class GaussianKDE1DimV1(KDEHelper, WrapDistribution):
              If no weights are given, each kernel will be scaled by the same
              constant :math:`\frac{1}{n_{data}}`. |@docend:pdf.kde.init.weights|
             truncate: If a truncated Gaussian kernel should be used with the limits given by the `obs` lower and
-                upper limits. This can cause NaNs in case datapoints are outside of the limits.
+                upper limits. This can cause NaNs in case datapoints are outside the limits.
+            extended: |@doc:pdf.init.extended| The overall yield of the PDF.
+               If this is parameter-like, it will be used as the yield,
+               the expected number of events, and the PDF will be extended.
+               An extended PDF has additional functionality, such as the
+               ``ext_*`` methods and the ``counts`` (for binned PDFs). |@docend:pdf.init.extended|
+            norm: |@doc:pdf.init.norm| Normalization of the PDF.
+               By default, this is the same as the default space of the PDF. |@docend:pdf.init.norm|
             name: |@doc:pdf.kde.init.name||@docend:pdf.kde.init.name|
         """
         original_data = data
@@ -745,6 +755,8 @@ class GaussianKDE1DimV1(KDEHelper, WrapDistribution):
             dist_params={},
             dist_kwargs=dist_kwargs,
             distribution=distribution,
+            extended=extended,
+            norm=norm,
             name=name,
         )
 
@@ -775,6 +787,8 @@ class KDE1DimExact(KDEHelper, WrapDistribution):
         kernel: tfd.Distribution = None,
         padding: callable | str | bool | None = None,
         weights: np.ndarray | tf.Tensor | None = None,
+        extended: ExtendedInputType = None,
+        norm: NormInputType = None,
         name: str | None = "ExactKDE1DimV1",
     ):
         r"""Kernel Density Estimation is a non-parametric method to approximate the density of given points.
@@ -890,6 +904,13 @@ class KDE1DimExact(KDEHelper, WrapDistribution):
 
              If no weights are given, each kernel will be scaled by the same
              constant :math:`\frac{1}{n_{data}}`. |@docend:pdf.kde.init.weights|
+            extended: |@doc:pdf.init.extended| The overall yield of the PDF.
+               If this is parameter-like, it will be used as the yield,
+               the expected number of events, and the PDF will be extended.
+               An extended PDF has additional functionality, such as the
+               ``ext_*`` methods and the ``counts`` (for binned PDFs). |@docend:pdf.init.extended|
+            norm: |@doc:pdf.init.norm| Normalization of the PDF.
+               By default, this is the same as the default space of the PDF. |@docend:pdf.init.norm|
             name: |@doc:model.init.name| Human-readable name
                or label of
                the PDF for better identification.
@@ -954,6 +975,8 @@ class KDE1DimExact(KDEHelper, WrapDistribution):
             dist_params={},
             dist_kwargs=dist_kwargs,
             distribution=distribution,
+            extended=extended,
+            norm=norm,
             name=name,
         )
 
@@ -980,6 +1003,8 @@ class KDE1DimGrid(KDEHelper, WrapDistribution):
         binning_method: str | None = None,
         obs: ztyping.ObsTypeInput | None = None,
         weights: np.ndarray | tf.Tensor | None = None,
+        extended: ExtendedInputType = None,
+        norm: NormInputType = None,
         name: str = "GridKDE1DimV1",
     ):
         r"""Kernel Density Estimation is a non-parametric method to approximate the density of given points.
@@ -1095,6 +1120,13 @@ class KDE1DimGrid(KDEHelper, WrapDistribution):
 
              If no weights are given, each kernel will be scaled by the same
              constant :math:`\frac{1}{n_{data}}`. |@docend:pdf.kde.init.weights|
+            extended: |@doc:pdf.init.extended| The overall yield of the PDF.
+               If this is parameter-like, it will be used as the yield,
+               the expected number of events, and the PDF will be extended.
+               An extended PDF has additional functionality, such as the
+               ``ext_*`` methods and the ``counts`` (for binned PDFs). |@docend:pdf.init.extended|
+            norm: |@doc:pdf.init.norm| Normalization of the PDF.
+               By default, this is the same as the default space of the PDF. |@docend:pdf.init.norm|
             name: |@doc:model.init.name| Human-readable name
                or label of
                the PDF for better identification.
@@ -1186,6 +1218,8 @@ class KDE1DimGrid(KDEHelper, WrapDistribution):
             dist_params={},
             dist_kwargs=dist_kwargs,
             distribution=distribution,
+            extended=extended,
+            norm=norm,
             name=name,
         )
 
@@ -1206,6 +1240,8 @@ class KDE1DimFFT(KDEHelper, BasePDF):
         fft_method: str | None = None,
         padding: callable | str | bool | None = None,
         weights: np.ndarray | tf.Tensor | None = None,
+        extended: ExtendedInputType = None,
+        norm: NormInputType = None,
         name: str = "KDE1DimFFT",
     ):
         r"""Kernel Density Estimation is a non-parametric method to approximate the density of given points.
@@ -1323,6 +1359,13 @@ class KDE1DimFFT(KDEHelper, BasePDF):
 
              If no weights are given, each kernel will be scaled by the same
              constant :math:`\frac{1}{n_{data}}`. |@docend:pdf.kde.init.weights|
+            extended: |@doc:pdf.init.extended| The overall yield of the PDF.
+               If this is parameter-like, it will be used as the yield,
+               the expected number of events, and the PDF will be extended.
+               An extended PDF has additional functionality, such as the
+               ``ext_*`` methods and the ``counts`` (for binned PDFs). |@docend:pdf.init.extended|
+            norm: |@doc:pdf.init.norm| Normalization of the PDF.
+               By default, this is the same as the default space of the PDF. |@docend:pdf.init.norm|
             name: |@doc:model.init.name| Human-readable name
                or label of
                the PDF for better identification.
@@ -1375,7 +1418,9 @@ class KDE1DimFFT(KDEHelper, BasePDF):
         self._bandwidth = bandwidth
 
         params = {"bandwidth": self._bandwidth}
-        super().__init__(obs=obs, name=name, params=params)
+        super().__init__(
+            obs=obs, name=name, params=params, extended=extended, norm=norm
+        )
         self._kernel = kernel
         self._weights = weights
         if support is None:
@@ -1424,6 +1469,8 @@ class KDE1DimISJ(KDEHelper, BasePDF):
         num_grid_points: int | None = None,
         binning_method: str | None = None,
         weights: np.ndarray | tf.Tensor | None = None,
+        extended: ExtendedInputType = None,
+        norm: NormInputType = None,
         name: str = "KDE1DimISJ",
     ):
         r"""Kernel Density Estimation is a non-parametric method to approximate the density of given points.
@@ -1516,6 +1563,13 @@ class KDE1DimISJ(KDEHelper, BasePDF):
 
              If no weights are given, each kernel will be scaled by the same
              constant :math:`\frac{1}{n_{data}}`. |@docend:pdf.kde.init.weights|
+            extended: |@doc:pdf.init.extended| The overall yield of the PDF.
+               If this is parameter-like, it will be used as the yield,
+               the expected number of events, and the PDF will be extended.
+               An extended PDF has additional functionality, such as the
+               ``ext_*`` methods and the ``counts`` (for binned PDFs). |@docend:pdf.init.extended|
+            norm: |@doc:pdf.init.norm| Normalization of the PDF.
+               By default, this is the same as the default space of the PDF. |@docend:pdf.init.norm|
             name: |@doc:model.init.name| Human-readable name
                or label of
                the PDF for better identification.
@@ -1558,7 +1612,9 @@ class KDE1DimISJ(KDEHelper, BasePDF):
         )
 
         params = {}
-        super().__init__(obs=obs, name=name, params=params)
+        super().__init__(
+            obs=obs, name=name, params=params, extended=extended, norm=norm
+        )
 
     def _unnormalized_pdf(self, x):
         x = z.unstack_x(x)

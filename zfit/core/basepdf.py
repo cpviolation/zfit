@@ -56,6 +56,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ..util.ztyping import ExtendedInputType, NormInputType
+
 if TYPE_CHECKING:
     import zfit
 
@@ -123,8 +125,8 @@ class BasePDF(ZfitPDF, BaseModel):
         params: dict[str, ZfitParameter] = None,
         dtype: type = ztypes.float,
         name: str = "BasePDF",
-        extended=None,
-        norm=None,
+        extended: ExtendedInputType = None,
+        norm: NormInputType = None,
         **kwargs,
     ):
         super().__init__(obs=obs, dtype=dtype, name=name, params=params, **kwargs)
@@ -140,15 +142,6 @@ class BasePDF(ZfitPDF, BaseModel):
             methods_to_check=_BasePDF_USER_IMPL_METHODS_TO_CHECK,
             wrapper_not_overwritten=_BasePDF_register_check_support,
         )
-
-    # @property
-    # def space(self) -> "zfit.Space":
-    #     if self._norm_range is not None:
-    #         space = self._norm_range
-    #     else:
-    #         space = super().space
-    #
-    #     return space
 
     def _check_input_norm(self, norm, none_is_error=False):
         if norm is None:
@@ -636,6 +629,15 @@ class BasePDF(ZfitPDF, BaseModel):
         # if not self.is_extended:
         #     raise zexception.ExtendedPDFError("PDF is not extended, cannot get yield.")
         return self._yield
+
+    @property
+    def extended(self) -> Parameter | None:
+        """Return the yield (only for extended models).
+
+        Returns:
+            The yield of the current model or None
+        """
+        return self.get_yield()
 
     def _get_params(
         self,

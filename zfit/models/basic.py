@@ -5,19 +5,24 @@ Gauss, exponential... that can be used together with Functors to build larger mo
 
 #  Copyright (c) 2022 zfit
 import contextlib
+from typing_extensions import Literal
 
 import tensorflow as tf
+from pydantic import Field, root_validator
 
 import zfit.z.numpy as znp
 from zfit import z
 from ..core.basepdf import BasePDF
+from ..core.serialmixin import SerializableMixin
 from ..core.space import ANY_LOWER, ANY_UPPER, Space
+from ..serialization import SpaceRepr, ParameterRepr
+from ..serialization.pdfrepr import BasePDFRepr
 from ..util import ztyping
 from ..util.exception import BreakingAPIChangeError
 from ..util.warnings import warn_advanced_feature
 
 
-class Exponential(BasePDF):
+class Exponential(BasePDF, SerializableMixin):
     _N_OBS = 1
 
     def __init__(
@@ -45,7 +50,7 @@ class Exponential(BasePDF):
                 raise BreakingAPIChangeError(
                     "The 'lambda' parameter has been renamed from 'lambda_' to 'lam'."
                 )
-        params = {"lambda": lam}
+        params = {"lambda": lam, 'lam': lam}
         super().__init__(obs, name=name, params=params)
 
         self._calc_numerics_data_shift = lambda: z.constant(0.0)
@@ -203,3 +208,23 @@ limits = Space(axes=0, limits=(ANY_LOWER, ANY_UPPER))
 Exponential.register_analytic_integral(
     func=_exp_integral_from_any_to_any, limits=limits
 )
+
+
+class ExponentialPDFRepr(BasePDFRepr):
+    _implementation = Exponential
+    hs3_type: Literal["Exponential"] = Field("Exponential", alias="type")
+    x: SpaceRepr
+    lam: ParameterRepr
+
+    @root_validator(pre=True)
+    def convert_params(cls, values):
+        if cls.orm_mode(values):
+            values = dict(values)
+            values.update(lam=values.pop("params").pop('lam'))
+            values["x"] = values.pop("space")
+        return values
+
+    def _to_orm(self, init):
+        init["obs"] = init.pop("x")
+        out = super()._to_orm(init)
+        return out

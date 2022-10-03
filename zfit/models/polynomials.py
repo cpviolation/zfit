@@ -2,14 +2,20 @@
 """Recurrent polynomials."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
+import pydantic
+from typing_extensions import Literal
+
+from ..core.serialmixin import SerializableMixin
+from ..serialization import SpaceRepr, Serializer
+from ..serialization.pdfrepr import BasePDFRepr
 from ..util.ztyping import ExtendedInputType, NormInputType
 
 if TYPE_CHECKING:
     import zfit
 
-from collections.abc import Mapping
+from typing import Mapping
 import abc
 
 import tensorflow as tf
@@ -78,17 +84,23 @@ class RecursivePolynomial(BasePDF):
         coeffs.insert(0, coeff0)
         params = {f"c_{i}": coeff for i, coeff in enumerate(coeffs)}
         self._degree = len(coeffs) - 1  # 1 coeff -> 0th degree
-        self._do_scale = apply_scaling
+        self._apply_scale = apply_scaling
         if apply_scaling and not (isinstance(obs, Space) and obs.n_limits == 1):
             raise ValueError(
                 "obs need to be a Space with exactly one limit if rescaling is requested."
             )
-        super().__init__(obs=obs, name=name, params=params)
+        super().__init__(
+            obs=obs, name=name, params=params, extended=extended, norm=norm
+        )
 
     def _polynomials_rescale(self, x):
-        if self._do_scale:
+        if self._apply_scale:
             x = rescale_minus_plus_one(x, limits=self.space)
         return x
+
+    @property
+    def apply_scaling(self):
+        return self._apply_scale
 
     @property
     def degree(self):
@@ -103,6 +115,26 @@ class RecursivePolynomial(BasePDF):
     @abc.abstractmethod
     def _poly_func(self, x):
         raise SpecificFunctionNotImplemented
+
+
+class BaseRecursivePolynomialRepr(BasePDFRepr):
+    x: SpaceRepr
+    params: Mapping[str, Serializer.types.ParamTypeDiscriminated] = pydantic.Field(
+        alias="coeffs"
+    )
+    apply_scaling: Optional[bool]
+
+    @pydantic.root_validator(pre=True)
+    def convert_params(cls, values):
+        if cls.orm_mode(values):
+            values = dict(values)
+            values["x"] = values.pop("space")
+        return values
+
+    def _to_orm(self, init):
+        init["obs"] = init.pop("x")
+        init["coeff0"], *init["coeffs"] = init.pop("params").values()
+        return super()._to_orm(init)
 
 
 def create_poly(x, polys, coeffs, recurrence):
@@ -186,7 +218,7 @@ def legendre_integral(
     return integral
 
 
-class Legendre(RecursivePolynomial):
+class Legendre(RecursivePolynomial, SerializableMixin):
     def __init__(
         self,
         obs: ztyping.ObsTypeInput,
@@ -256,6 +288,11 @@ class Legendre(RecursivePolynomial):
         return legendre_shape(x=x, coeffs=coeffs)
 
 
+class LegendreRepr(BaseRecursivePolynomialRepr):
+    _implementation = Legendre
+    hs3_type: Literal["Legendre"] = pydantic.Field("Legendre", alias="type")
+
+
 legendre_limits = Space(axes=0, limits=(Space.ANY_LOWER, Space.ANY_UPPER))
 Legendre.register_analytic_integral(func=legendre_integral, limits=legendre_limits)
 
@@ -277,7 +314,7 @@ def chebyshev_shape(x, coeffs):
     )
 
 
-class Chebyshev(RecursivePolynomial):
+class Chebyshev(RecursivePolynomial, SerializableMixin):
     def __init__(
         self,
         obs,
@@ -348,6 +385,11 @@ class Chebyshev(RecursivePolynomial):
         return chebyshev_shape(x=x, coeffs=coeffs)
 
 
+class ChebyshevRepr(BaseRecursivePolynomialRepr):
+    _implementation = Chebyshev
+    hs3_type: Literal["Chebyshev"] = pydantic.Field("Chebyshev", alias="type")
+
+
 def func_integral_chebyshev1(limits, norm, params, model):
     lower, upper = limits.rect_limits
     lower_rescaled = model._polynomials_rescale(lower)
@@ -361,7 +403,7 @@ def func_integral_chebyshev1(limits, norm, params, model):
     )  # if polynomial 0 is defined as T_0 = 1
     if model.degree >= 1:
         integral += (
-            model.params["c_1"] * 0.5 * (upper**2 - lower**2)
+            model.params["c_1"] * 0.5 * (upper ** 2 - lower ** 2)
         )  # if polynomial 0 is defined as T_0 = 1
     if model.degree >= 2:
 
@@ -404,7 +446,7 @@ def chebyshev2_shape(x, coeffs):
     )
 
 
-class Chebyshev2(RecursivePolynomial):
+class Chebyshev2(RecursivePolynomial, SerializableMixin):
     def __init__(
         self,
         obs,
@@ -464,6 +506,11 @@ class Chebyshev2(RecursivePolynomial):
     def _poly_func(self, x):
         coeffs = convert_coeffs_dict_to_list(self.params)
         return chebyshev2_shape(x=x, coeffs=coeffs)
+
+
+class Chebyshev2Repr(BaseRecursivePolynomialRepr):
+    _implementation = Chebyshev2
+    hs3_type: Literal["Chebyshev2"] = pydantic.Field("Chebyshev2", alias="type")
 
 
 def func_integral_chebyshev2(limits, norm, params, model):
@@ -539,7 +586,7 @@ laguerre_shape_alpha_minusone = generalized_laguerre_shape_factory(
 )  # for integral
 
 
-class Laguerre(RecursivePolynomial):
+class Laguerre(RecursivePolynomial, SerializableMixin):
     def __init__(
         self,
         obs,
@@ -597,6 +644,11 @@ class Laguerre(RecursivePolynomial):
     def _poly_func(self, x):
         coeffs = convert_coeffs_dict_to_list(self.params)
         return laguerre_shape(x=x, coeffs=coeffs)
+
+
+class LaguerreRepr(BaseRecursivePolynomialRepr):
+    _implementation = Laguerre
+    hs3_type: Literal["Laguerre"] = pydantic.Field("Laguerre", alias="type")
 
 
 def func_integral_laguerre(limits, norm, params: dict, model):
@@ -659,7 +711,7 @@ def hermite_shape(x, coeffs):
     )
 
 
-class Hermite(RecursivePolynomial):
+class Hermite(RecursivePolynomial, SerializableMixin):
     def __init__(
         self,
         obs,
@@ -718,6 +770,11 @@ class Hermite(RecursivePolynomial):
         return hermite_shape(x=x, coeffs=coeffs)
 
 
+class HermiteRepr(BaseRecursivePolynomialRepr):
+    _implementation = Hermite
+    hs3_type: Literal["Hermite"] = pydantic.Field("Hermite", alias="type")
+
+
 def func_integral_hermite(limits, norm, params, model):
     lower, upper = limits.limit1d
     lower_rescaled = model._polynomials_rescale(lower)
@@ -761,6 +818,5 @@ def convert_coeffs_dict_to_list(coeffs: Mapping) -> list:
         except KeyError:  # happens, if there are other parameters in there, such as a yield
             break
     return coeffs_list
-
 
 # EOF

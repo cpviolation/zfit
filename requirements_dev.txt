@@ -1,6 +1,7 @@
 bumpversion>=0.5.3
 check-manifest
 coverage>=4.5.1
+# coverage-lcov  # reactivate once https://github.com/TheCleric/coverage-lcov/issues/6 resolved (remove it CI)
 docformatter
 flake8>=3.5.0
 jax
@@ -27,6 +28,7 @@ Sphinx>=3.5.4
 sphinx-autodoc-typehints
 sphinx-copybutton
 sphinx-panels
+sphinx_togglebutton
 sphinxcontrib-bibtex
 sphinxcontrib-images
 sphinxcontrib-youtube>=1.0.0,<1.2.0

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, Literal
 
+import pydantic
 import xxhash
+from pydantic import Field
 from tensorflow.python.util.deprecation import deprecated_args, deprecated
 
 from .parameter import set_values
+from .serialmixin import ZfitSerializable
+from ..serialization.serializer import BaseRepr
 
 if TYPE_CHECKING:
     import zfit
@@ -47,7 +51,9 @@ from .space import Space, convert_to_space
 
 
 # TODO: make cut only once, then remember
-class Data(ZfitUnbinnedData, BaseDimensional, BaseObject, GraphCachable):
+class Data(
+    ZfitUnbinnedData, BaseDimensional, BaseObject, GraphCachable, ZfitSerializable
+):
     BATCH_SIZE = 1000000  # 1 mio
 
     def __init__(
@@ -650,6 +656,13 @@ class Data(ZfitUnbinnedData, BaseDimensional, BaseObject, GraphCachable):
 
     def __getitem__(self, item):
         return getitem_obs(self, item)
+
+
+# TODO(serialization): add to serializer
+# class DataRepr(BaseRepr):
+#     _implementation = Data
+#     _owndict = pydantic.PrivateAttr(default_factory=dict)
+#     hs3_type: Literal["Data"] = Field("Data", alias="type")
 
 
 def getitem_obs(self, item):

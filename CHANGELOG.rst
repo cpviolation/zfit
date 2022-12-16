@@ -7,6 +7,34 @@ Changelog
 Develop
 ========================
 
+
+Breaking changes
+------------------
+
+Deprecations
+-------------
+
+Bug fixes and small changes
+---------------------------
+- ``create_extended`` added ``None`` to the name, removed.
+
+Experimental
+------------
+
+Requirement changes
+-------------------
+
+Thanks
+------
+
+0.11.1 (20 Nov 2022)
+=========================
+
+Hotfix for wrong import
+
+0.11.0 (29 Nov 2022)
+========================
+
 Major Features and Improvements
 -------------------------------
 - columns of unbinned ``data`` can be accessed with the obs like a mapping (like a dataframe)
@@ -15,23 +43,17 @@ Major Features and Improvements
 Breaking changes
 ------------------
 - ``Data`` can no longer be used directly as an array-like object but got mapping-like behavior.
-
-Deprecations
--------------
+- some old deprecated methods were removed
 
 Bug fixes and small changes
 ---------------------------
 - improved caching speed, reduced tradeoff against memory
-
-Experimental
-------------
+- yields were not added correctly in some (especially binned) PDFs and the fit would fail
 
 Requirement changes
 -------------------
 - add jacobi (many thanks at @HansDembinski for the package)
 
-Thanks
-------
 
 0.10.1 (31 Aug 2022)
 ========================

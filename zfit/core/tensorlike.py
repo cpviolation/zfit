@@ -28,7 +28,6 @@ def register_tensor_conversion(
 
 
 class OverloadableMixin:
-
     # Conversion to tensor.
     @staticmethod
     def _TensorConversionFunction(
@@ -100,7 +99,6 @@ class OverloadableMixin:
 
 
 class OverloadableMixinValues:
-
     # Conversion to tensor.
     @staticmethod
     def _TensorConversionFunction(

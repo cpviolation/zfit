@@ -1,4 +1,4 @@
-#  Copyright (c) 2022 zfit
+#  Copyright (c) 2023 zfit
 
 from __future__ import annotations
 
@@ -27,7 +27,6 @@ import pandas as pd
 import tensorflow as tf
 import uproot
 
-# from ..settings import types as ztypes
 import zfit
 import zfit.z.numpy as znp
 
@@ -83,8 +82,7 @@ class Data(
         if dtype is None:
             dtype = ztypes.float
         super().__init__(name=name)
-        # if iterator_feed_dict is None:
-        #     iterator_feed_dict = {}
+
         self._permutation_indices_data = None
         self._next_batch = None
         self._dtype = dtype
@@ -415,7 +413,6 @@ class Data(
         Returns:
             ``zfit.Data``: A ``Data`` object containing the unbinned data.
         """
-        # dataset = LightDataset.from_tensor(tensor=tensor)
         if dtype is None:
             dtype = ztypes.float
         tensor = tf.cast(tensor, dtype=dtype)
@@ -423,7 +420,6 @@ class Data(
             tensor = znp.expand_dims(tensor, -1)
         if len(tensor.shape) == 1:
             tensor = znp.expand_dims(tensor, -1)
-        # dataset = tf.data.Dataset.from_tensor_slices(tensor)
         dataset = LightDataset.from_tensor(tensor)
 
         return Data(  # *not* class, if subclass, keep constructor
@@ -444,7 +440,9 @@ class Data(
                 if self.has_weights:
                     hashval.update(np.asarray(self.weights))
                 self._hashint = hashval.intdigest()
-            except AttributeError:  # if the dataset is not yet initialized; this is allowed
+            except (
+                AttributeError
+            ):  # if the dataset is not yet initialized; this is allowed
                 self._hashint = None
 
     def with_obs(self, obs):
@@ -477,17 +475,16 @@ class Data(
         df = pd.DataFrame(data=values, columns=obs_str)
         return df
 
-    def unstack_x(self, obs: ztyping.ObsTypeInput = None, always_list: bool = False):
+    def unstack_x(self, obs: ztyping.ObsTypeInput = None, always_list=None):
         """Return the unstacked data: a list of tensors or a single Tensor.
 
         Args:
             obs: which observables to return
-            always_list: If True, always return a list (also if length 1)
 
         Returns:
             List(tf.Tensor)
         """
-        return z.unstack_x(self.value(obs=obs))
+        return z.unstack_x(self.value(obs=obs), always_list=always_list)
 
     def value(self, obs: ztyping.ObsTypeInput = None):
         """Return the data as a numpy-like object in ``obs`` order.
@@ -546,7 +543,6 @@ class Data(
             else False
         )
 
-        # permutate = perm_indices is not None
         if obs:
             if not frozenset(obs) <= frozenset(self.obs):
                 raise ValueError(
@@ -556,7 +552,6 @@ class Data(
                     )
                 )
             perm_indices = self.space.get_reorder_indices(obs=obs)
-            # values = list(values[self.obs.index(o)] for o in obs if o in self.obs)
         if perm_indices:
             value = z.unstack_x(value, always_list=True)
             value = [value[i] for i in perm_indices]
@@ -568,14 +563,13 @@ class Data(
     # TODO(Mayou36): raise error is not obs <= self.obs?
     @invalidate_graph
     def sort_by_axes(self, axes: ztyping.AxesTypeInput, allow_superset: bool = True):
-        if not allow_superset:
-            if not frozenset(axes) <= frozenset(self.axes):
-                raise ValueError(
-                    "The observable(s) {} are not contained in the dataset. "
-                    "Only the following are: {}".format(
-                        frozenset(axes) - frozenset(self.axes), self.axes
-                    )
+        if not allow_superset and not frozenset(axes) <= frozenset(self.axes):
+            raise ValueError(
+                "The observable(s) {} are not contained in the dataset. "
+                "Only the following are: {}".format(
+                    frozenset(axes) - frozenset(self.axes), self.axes
                 )
+            )
         space = self.space.with_axes(axes=axes, allow_subset=True)
 
         def setter(value):
@@ -588,14 +582,13 @@ class Data(
 
     @invalidate_graph
     def sort_by_obs(self, obs: ztyping.ObsTypeInput, allow_superset: bool = False):
-        if not allow_superset:
-            if not frozenset(obs) <= frozenset(self.obs):
-                raise ValueError(
-                    "The observable(s) {} are not contained in the dataset. "
-                    "Only the following are: {}".format(
-                        frozenset(obs) - frozenset(self.obs), self.obs
-                    )
+        if not allow_superset and not frozenset(obs) <= frozenset(self.obs):
+            raise ValueError(
+                "The observable(s) {} are not contained in the dataset. "
+                "Only the following are: {}".format(
+                    frozenset(obs) - frozenset(self.obs), self.obs
                 )
+            )
 
         space = self.space.with_obs(
             obs=obs, allow_subset=True, allow_superset=allow_superset
@@ -611,7 +604,7 @@ class Data(
 
     def _check_input_data_range(self, data_range):
         data_range = self._convert_sort_space(limits=data_range)
-        if not frozenset(self.data_range.obs) == frozenset(data_range.obs):
+        if frozenset(self.data_range.obs) != frozenset(data_range.obs):
             raise ObsIncompatibleError(
                 f"Data range has to cover the full observable space {self.data_range.obs}, not "
                 f"only {data_range.obs}"
@@ -729,7 +722,6 @@ class Sampler(Data):
         dtype: tf.DType = ztypes.float,
         use_hash: bool = None,
     ):
-
         super().__init__(
             dataset=dataset,
             obs=obs,
@@ -802,12 +794,10 @@ class Sampler(Data):
             fixed_params = []
         if dtype is None:
             dtype = ztypes.float
-        # from tensorflow.python.ops.variables import VariableV1
         sample_holder = tf.Variable(
             initial_value=sample_func(),
             dtype=dtype,
             trainable=False,
-            # validate_shape=False,
             shape=(None, obs.n_obs),
             name=f"sample_data_holder_{cls.get_cache_counting()}",
         )
@@ -848,7 +838,6 @@ class Sampler(Data):
         with set_values(
             list(temp_param_values.keys()), list(temp_param_values.values())
         ):
-
             # if not (n and self._initial_resampled):  # we want to load and make sure that it's initialized
             #     # means it's handled inside the function
             #     # TODO(Mayou36): check logic; what if new_samples loaded? get's overwritten by initializer
@@ -879,7 +868,7 @@ class LightDataset:
             tensor = z.convert_to_tensor(tensor)
         self.tensor = tensor
 
-    def batch(self, batch_size):  # ad-hoc just empty
+    def batch(self, _):  # ad-hoc just empty, mimicking tf.data.Dataset interface
         return self
 
     def __iter__(self):
@@ -904,10 +893,10 @@ def sum_samples(
         raise WorkInProgressError
     sample2 = sample2.value(obs=obs)
     if shuffle:
-        sample2 = tf.random.shuffle(sample2)
+        sample2 = z.random.shuffle(sample2)
     sample1 = sample1.value(obs=obs)
     tensor = sample1 + sample2
-    if any([s.weights is not None for s in samples]):
+    if any(s.weights is not None for s in samples):
         raise WorkInProgressError("Cannot combine weights currently")
     weights = None
 

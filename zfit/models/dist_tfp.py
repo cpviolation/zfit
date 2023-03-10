@@ -255,7 +255,7 @@ class GaussPDFRepr(BasePDFRepr):
     hs3_type: Literal["Gauss"] = Field("Gauss", alias="type")
     x: SpaceRepr
     mu: Serializer.types.ParamInputTypeDiscriminated
-    sigma: Serializer.types.ParamTypeDiscriminated
+    sigma: Serializer.types.ParamInputTypeDiscriminated
 
     @root_validator(pre=True)
     def convert_params(cls, values):

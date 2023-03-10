@@ -278,11 +278,6 @@ class CrystalBallPDFRepr(BasePDFRepr):
     alpha: Serializer.types.ParamTypeDiscriminated
     n: Serializer.types.ParamTypeDiscriminated
 
-    def _to_orm(self, init):
-        init["obs"] = init.pop("x")
-        out = super()._to_orm(init)
-        return out
-
 
 crystalball_integral_limits = Space(
     axes=(0,), limits=(((ANY_LOWER,),), ((ANY_UPPER,),))
@@ -396,11 +391,6 @@ class DoubleCBPDFRepr(BasePDFRepr):
     nl: Serializer.types.ParamTypeDiscriminated
     alphar: Serializer.types.ParamTypeDiscriminated
     nr: Serializer.types.ParamTypeDiscriminated
-
-    def _to_orm(self, init):
-        init["obs"] = init.pop("x")
-        out = super()._to_orm(init)
-        return out
 
 
 DoubleCB.register_analytic_integral(

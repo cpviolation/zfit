@@ -7,7 +7,7 @@ dill
 dotmap
 frozendict
 hist
-iminuit>=2.3
+iminuit>=2.3, <2.20
 importlib-metadata; python_version <"3.8.0"
 jacobi
 numdifftools

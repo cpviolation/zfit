@@ -38,7 +38,7 @@ lambd.set_value(-0.05)
 frac.set_value(0.07)
 
 # plot the data
-data_np = data[:, 0].numpy()
+data_np = data.numpy()
 n_bins = 50
 
 plot_scaling = n_sample / n_bins * obs.area()
